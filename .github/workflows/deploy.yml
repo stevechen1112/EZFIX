@@ -1,0 +1,28 @@
+# GitHub Actions 自動部署到 Linode
+# 觸發條件：推送到 main 分支
+# 設定：到 GitHub repo → Settings → Secrets 加入：
+#   - LINODE_SSH_KEY     : 部署用的 SSH private key
+#   - LINODE_HOST        : 伺服器 IP 或網域
+#   - LINODE_USER        : 登入帳號（通常是 deploy）
+
+name: Deploy to Linode
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.LINODE_HOST }}
+          username: ${{ secrets.LINODE_USER }}
+          key: ${{ secrets.LINODE_SSH_KEY }}
+          script: |
+            cd /var/www/henghui
+            bash deploy.sh
+            pm2 status

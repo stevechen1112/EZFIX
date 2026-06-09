@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei",
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --color-title: #0a4a8c;
+  --color-cta: #f5a623;
+  --color-cta-hover: #e8941a;
+  --color-reviews-bg: #0e5391;
+  --color-floating-phone: #ff6b5a;
+  --color-floating-line: #06c755;
+}
+
+html,
+body {
+  font-family: var(--font-sans);
+  color: #333;
+  background: #fff;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hero 全寬深色背景 + 白色置中文字 */
+.hero-wrap {
+  position: relative;
+  min-height: 75vh;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* 標題色（深藍） */
+.title-blue {
+  color: var(--color-title);
+}
+
+/* 標題底線裝飾 */
+.title-underline {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.5rem;
+}
+.title-underline::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 4px;
+  background: var(--color-cta);
+  border-radius: 2px;
+}
+.title-underline-left {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.5rem;
+}
+.title-underline-left::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 60px;
+  height: 4px;
+  background: var(--color-cta);
+  border-radius: 2px;
+}
+
+/* 服務卡片 */
+.service-card-2col {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.service-card-2col:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.15);
+}
+
+/* 評論區深藍背景 */
+.reviews-dark {
+  background: var(--color-reviews-bg);
+  color: #fff;
+}
+
+/* 評論卡（白底浮在深藍上） */
+.review-card-light {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.75rem;
+  color: #333;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.2);
+}
+
+/* 浮動 CTA 膠囊（紅/綠） */
+.floating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  border-radius: 9999px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+.floating-pill:hover {
+  transform: scale(1.05);
+}
+.floating-pill-phone {
+  background: var(--color-floating-phone);
+}
+.floating-pill-line {
+  background: var(--color-floating-line);
+}
+
+/* 立即撥打按鈕（橘色） */
+.btn-call {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-cta);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.95rem 1.5rem;
+  border-radius: 8px;
+  width: 100%;
+  transition: background 0.2s ease;
+}
+.btn-call:hover {
+  background: var(--color-cta-hover);
+}
+
+/* 黑色三角 bullet */
+.bullet-triangle {
+  color: #1a1a1a;
+  font-weight: 900;
+  margin-right: 0.5rem;
+}
+
+/* 評論輪播指示點 */
+.dot-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.25s ease;
+  border: none;
+  cursor: pointer;
+}
+.dot-indicator.active {
+  background: #fff;
+  width: 28px;
+  border-radius: 5px;
+}
+
+/* 給手機版底部按鈕列預留空間 */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 64px;
+  }
+}
