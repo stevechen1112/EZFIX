@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  createBlogPostFromApi,
   getApiSettings,
-  updateBlogPostFromApi,
   verifyApiKey,
   type BlogApiPayload,
 } from "@/lib/blog-api";
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function POST(req: NextRequest) {
   const auth = await verifyApiKey(req);
   if (!auth.ok) {
     return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
@@ -18,7 +15,7 @@ export async function PUT(
   try {
     const body = (await req.json()) as BlogApiPayload;
     const { publishMode } = await getApiSettings();
-    const result = await updateBlogPostFromApi(params.slug, body, publishMode);
+    const result = await createBlogPostFromApi(body, publishMode);
 
     if (!result.ok) {
       return NextResponse.json({ success: false, error: result.error }, { status: result.status });
@@ -27,11 +24,12 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       postId: result.post.id,
-      url: `/blog/${result.post.slug}`,
-      updatedAt: result.post.updatedAt.toISOString(),
+      url: result.url,
+      publishedAt: result.post.publishedAt?.toISOString() || null,
+      isPublished: result.post.isPublished,
     });
   } catch (err) {
-    console.error("[ContentFlow Update] Error:", err);
+    console.error("[API v1 Create Post] Error:", err);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

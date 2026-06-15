@@ -27,11 +27,12 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       postId: result.post.id,
-      url: `/blog/${result.post.slug}`,
+      url: result.url,
       updatedAt: result.post.updatedAt.toISOString(),
+      isPublished: result.post.isPublished,
     });
   } catch (err) {
-    console.error("[ContentFlow Update] Error:", err);
+    console.error("[API v1 Update Post] Error:", err);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

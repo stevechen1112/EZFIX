@@ -111,6 +111,11 @@ model SiteSettings {
   footerLineLabel    String @default("LINE")
   footerCopyright    String @default("")
 
+  // 第三方文章 API
+  apiBaseUrl     String @default("") // 留空則使用 NEXT_PUBLIC_SITE_URL/api/v1
+  apiKey         String @default("") // Bearer token
+  apiPublishMode String @default("draft") // draft | published
+
   updatedAt     DateTime @updatedAt
 }
 
