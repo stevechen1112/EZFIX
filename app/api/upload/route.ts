@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { getCurrentUser } from "@/lib/auth";
+import { toMediaUrl } from "@/lib/media-url";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     const filepath = path.join(uploadDir, filename);
     await fs.writeFile(filepath, buffer);
 
-    const url = `/uploads/${folder}/${filename}`;
+    const url = toMediaUrl(`${folder}/${filename}`);
     return NextResponse.json({ url, filename, size: file.size });
   } catch (err) {
     console.error("Upload error:", err);

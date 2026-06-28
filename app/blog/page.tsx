@@ -17,7 +17,7 @@ export default async function BlogIndexPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-white">
+      <main id="content" className="min-h-screen bg-white">
         {/* Hero */}
         <section className="bg-gradient-to-br from-brand-700 to-brand-900 text-white py-16 md:py-24">
           <div className="mx-auto max-w-5xl px-4 text-center">
@@ -83,7 +83,7 @@ function BlogCard({ post }: { post: BlogPostItem }) {
       href={`/blog/${post.slug}`}
       className="group block bg-white rounded-2xl shadow-card overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition"
     >
-      {post.coverImage ? (
+      {post.coverImage && (
         <div className="aspect-[16/9] bg-gray-100 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -92,10 +92,6 @@ function BlogCard({ post }: { post: BlogPostItem }) {
             className="w-full h-full object-cover group-hover:scale-105 transition"
             loading="lazy"
           />
-        </div>
-      ) : (
-        <div className="aspect-[16/9] bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center text-brand-700 text-5xl font-black">
-          {post.title.charAt(0)}
         </div>
       )}
       <div className="p-5">

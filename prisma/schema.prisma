@@ -136,6 +136,7 @@ model BlogPost {
   slug        String    @unique
   excerpt     String    @default("")
   content     String
+  contentFormat String  @default("plain") // plain | markdown
   coverImage  String    @default("")
   authorName  String    @default("恆惠修理紗窗")
   category    String    @default("") // 例：維修建議、案例分享、常見問題

@@ -42,6 +42,7 @@ export type BlogPostItem = {
   slug: string;
   excerpt: string;
   content: string;
+  contentFormat?: string;
   coverImage: string;
   authorName: string;
   category: string;

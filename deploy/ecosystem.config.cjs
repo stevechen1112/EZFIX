@@ -13,6 +13,7 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: 3000,
+        NEXT_PUBLIC_SITE_URL: "https://ezfix.com.tw",
       },
       error_file: "/var/log/henghui/error.log",
       out_file: "/var/log/henghui/out.log",

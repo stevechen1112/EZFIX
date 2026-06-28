@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+
+const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export const metadata: Metadata = {
   title: {
@@ -30,7 +33,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {gaId ? <GoogleAnalytics measurementId={gaId} /> : null}
+        {children}
+      </body>
     </html>
   );
 }

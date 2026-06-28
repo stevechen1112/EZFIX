@@ -1,11 +1,64 @@
+import { BlogContent } from "@/components/frontend/BlogContent";
 import { prisma } from "@/lib/prisma";
+import { resolveSiteBaseUrl } from "@/lib/site-url";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+function buildArticleSchema(post: {
+  title: string;
+  excerpt: string;
+  authorName: string;
+  publishedAt: Date | null;
+  coverImage: string;
+  slug: string;
+}) {
+  const baseUrl = resolveSiteBaseUrl();
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt || post.title,
+    author: {
+      "@type": "Organization",
+      name: post.authorName || "恆惠修理紗窗",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "恆惠修理紗窗",
+      logo: {
+        "@type": "ImageObject",
+        url: `${baseUrl}/icon.png`,
+      },
+    },
+    datePublished: post.publishedAt?.toISOString() || new Date().toISOString(),
+    dateModified: post.publishedAt?.toISOString() || new Date().toISOString(),
+    image: post.coverImage ? post.coverImage : `${baseUrl}/icon.png`,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/blog/${encodeURIComponent(post.slug)}`,
+    },
+  });
+}
+
+function shouldShowExcerpt(excerpt: string, content: string): boolean {
+  const normalize = (value: string) => value.replace(/\s+/g, "").slice(0, 100);
+  if (!excerpt.trim()) return false;
+  return normalize(excerpt) !== normalize(content);
+}
+
+function resolveSlug(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const post = await prisma.blogPost.findUnique({ where: { slug: params.slug } });
+  const slug = resolveSlug(params.slug);
+  const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post) return { title: "找不到文章" };
   return {
     title: post.metaTitle || `${post.title} | 恆惠修理紗窗`,
@@ -14,7 +67,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await prisma.blogPost.findUnique({ where: { slug: params.slug } });
+  const slug = resolveSlug(params.slug);
+  const post = await prisma.blogPost.findUnique({ where: { slug } });
 
   // 草稿不對外公開
   if (!post || !post.isPublished) notFound();
@@ -34,18 +88,16 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     ? new Date(post.publishedAt).toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric" })
     : "";
 
-  // 把內容以空行分段、保留換行
-  const paragraphs = post.content.split(/\n\s*\n/);
+  // 內文格式：plain（舊文）或 markdown（ContentFlow 發布）
+  const contentFormat = (post.contentFormat === "markdown" ? "markdown" : "plain") as "plain" | "markdown";
 
   return (
-    <main className="min-h-screen bg-white">
+    <main id="content" className="min-h-screen bg-white">
       {/* JSON-LD Schema */}
-      {post.jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: post.jsonLd }}
-        />
-      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: post.jsonLd || buildArticleSchema(post) }}
+      />
       {/* Hero 封面 */}
       <section className="bg-gradient-to-br from-brand-700 to-brand-900 text-white">
         {post.coverImage && (
@@ -73,16 +125,12 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       {/* 內文 */}
       <article className="mx-auto max-w-3xl px-4 py-12 md:py-16">
         <div className="prose prose-lg max-w-none text-gray-800 leading-loose whitespace-pre-line text-base md:text-lg">
-          {post.excerpt && (
+          {post.excerpt && shouldShowExcerpt(post.excerpt, post.content) && (
             <p className="text-lg md:text-xl text-gray-600 border-l-4 border-brand-700 pl-4 mb-8 italic">
               {post.excerpt}
             </p>
           )}
-          {paragraphs.map((p, i) => (
-            <p key={i} className="mb-5">
-              {p}
-            </p>
-          ))}
+          <BlogContent content={post.content} format={contentFormat} />
         </div>
 
         {post.tags && (
@@ -140,13 +188,11 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                   href={`/blog/${r.slug}`}
                   className="group block bg-white rounded-xl shadow-card overflow-hidden hover:shadow-lg transition"
                 >
-                  {r.coverImage ? (
+                  {r.coverImage && (
                     <div className="aspect-[16/9] bg-gray-100 overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={r.coverImage} alt={r.title} className="w-full h-full object-cover group-hover:scale-105 transition" />
                     </div>
-                  ) : (
-                    <div className="aspect-[16/9] bg-gradient-to-br from-brand-100 to-brand-200" />
                   )}
                   <div className="p-4">
                     <h4 className="font-bold text-gray-900 line-clamp-2 group-hover:text-brand-700">{r.title}</h4>

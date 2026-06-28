@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { safeJsonParse } from "@/lib/utils";
+import { normalizeMediaUrl } from "@/lib/media-url";
+import { getSiteSettings } from "@/lib/site-settings";
+import { resolveSiteBaseUrl } from "@/lib/site-url";
 import { Header } from "@/components/frontend/Header";
 import { Hero } from "@/components/frontend/Hero";
 import { Services } from "@/components/frontend/Services";
@@ -9,62 +12,67 @@ import { LatestPosts } from "@/components/frontend/LatestPosts";
 import { Contact } from "@/components/frontend/Contact";
 import { Footer } from "@/components/frontend/Footer";
 import { FloatingButtons } from "@/components/frontend/FloatingButtons";
+import Link from "next/link";
 import type {
   ServiceItem,
   ReviewItem,
   HeroSlideItem,
   ServiceAreaItem,
-  SiteSettingsItem,
 } from "@/types";
+
+const SERVICE_LINKS = [
+  { href: "/blog/鋁門窗維修", title: "鋁門窗維修", desc: "門窗卡卡、輪子壞掉、密封不良，專業維修一次解決" },
+  { href: "/blog/折疊式紗窗", title: "折疊式紗窗", desc: "小空間最佳選擇，摺疊收納不占位" },
+  { href: "/blog/折疊式紗窗紗門訂製", title: "折疊式紗窗紗門訂製", desc: "量身訂製，精準符合您的門窗尺寸" },
+  { href: "/blog/防霾紗網", title: "防霾紗網", desc: "阻隔 PM2.5、花粉、灰塵，守護家人呼吸健康" },
+];
+
+function LocalBusinessSchema({ settings }: { settings: ReturnType<typeof getSiteSettings> extends Promise<infer T> ? T : never }) {
+  const baseUrl = resolveSiteBaseUrl();
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": settings.companyName,
+    "telephone": settings.phone,
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "台中市",
+      "addressRegion": "台灣",
+      "streetAddress": settings.address || "台中市南區柳川東路一段50號",
+    },
+    "url": baseUrl,
+    "openingHours": settings.businessHours || "Mo-Su 08:00-17:00",
+    "areaServed": "台中市",
+    "description": settings.seoDesc || "台中在地專業紗窗修理、折疊式紗窗訂製、鋁門窗維修、防霾網安裝服務。",
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
 
 export const dynamic = "force-dynamic";
 
 async function getData() {
   const [settings, heroSlides, services, reviews, areas] = await Promise.all([
-    prisma.siteSettings.findUnique({ where: { id: 1 } }),
+    getSiteSettings(),
     prisma.heroSlide.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
     prisma.review.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
     prisma.serviceArea.findMany({ orderBy: { order: "asc" } }),
   ]);
 
-  const safe: SiteSettingsItem = {
-    companyName: settings?.companyName ?? "恆惠修理紗窗",
-    phone: settings?.phone ?? "0938989579",
-    lineUrl: settings?.lineUrl ?? "",
-    address: settings?.address ?? "",
-    businessHours: settings?.businessHours ?? "",
-    facebookUrl: settings?.facebookUrl ?? "",
-    instagramUrl: settings?.instagramUrl ?? "",
-    seoTitle: settings?.seoTitle ?? "",
-    seoDesc: settings?.seoDesc ?? "",
-    ogImage: settings?.ogImage ?? "",
-    heroBadge: settings?.heroBadge ?? "台中專業紗窗修理",
-    heroSubtitle: settings?.heroSubtitle ?? "紗窗維修訂製｜折疊式紗窗｜鋁門窗維修｜防霾網安裝",
-    servicesTitle: settings?.servicesTitle ?? "服務項目",
-    areaTitle: settings?.areaTitle ?? "服務區域",
-    areaMapImage: settings?.areaMapImage ?? "/uploads/og/og-default.jpg",
-    areaCtaLabel: settings?.areaCtaLabel ?? "來電諮詢",
-    reviewsTitle: settings?.reviewsTitle ?? "客戶回饋",
-    reviewsSubtitle: settings?.reviewsSubtitle ?? "看看客戶對我們最新真實回饋",
-    contactTitle: settings?.contactTitle ?? "聯絡我們",
-    contactPhoneLabel: settings?.contactPhoneLabel ?? "電話",
-    contactCtaLabel: settings?.contactCtaLabel ?? "立即撥打",
-    contactDescription: settings?.contactDescription ?? "依照您的現況提供最好的建議及最妥善的處理方式，協助您解決問題。",
-    floatingPhoneLabel: settings?.floatingPhoneLabel ?? "來電諮詢",
-    floatingLineLabel: settings?.floatingLineLabel ?? "LINE 諮詢",
-    mobilePhoneLabel: settings?.mobilePhoneLabel ?? "立即聯絡",
-    mobileLineLabel: settings?.mobileLineLabel ?? "Line",
-    footerFbLabel: settings?.footerFbLabel ?? "Facebook",
-    footerLineLabel: settings?.footerLineLabel ?? "LINE",
-    footerCopyright: settings?.footerCopyright ?? "",
-  };
-
   return {
-    settings: safe,
-    heroSlides: heroSlides as HeroSlideItem[],
-    services: services.map((s) => ({ ...s, features: safeJsonParse<string[]>(s.features, []) })) as ServiceItem[],
-    reviews: reviews as ReviewItem[],
+    settings,
+    heroSlides: heroSlides.map((h) => ({ ...h, image: normalizeMediaUrl(h.image) })) as HeroSlideItem[],
+    services: services.map((s) => ({
+      ...s,
+      image: normalizeMediaUrl(s.image),
+      features: safeJsonParse<string[]>(s.features, []),
+    })) as ServiceItem[],
+    reviews: reviews.map((r) => ({ ...r, avatar: normalizeMediaUrl(r.avatar) })) as ReviewItem[],
     areas: areas as ServiceAreaItem[],
   };
 }
@@ -74,6 +82,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <LocalBusinessSchema settings={settings} />
       <Header
         logoText={settings.companyName}
         phone={settings.phone}
@@ -85,6 +94,26 @@ export default async function HomePage() {
           fallbackSubtitle={settings.heroSubtitle}
         />
         <Services items={services} title={settings.servicesTitle} />
+        {/* 新服務文章連結（幫助 Google 爬蟲從首頁發現新內容） */}
+        <section className="py-12 md:py-16 bg-white">
+          <div className="mx-auto max-w-5xl px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-2">專業服務指南</h2>
+            <p className="text-gray-500 text-center mb-10">深入了解各項服務的詳細說明與常見問題</p>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {SERVICE_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="group block bg-gray-50 rounded-xl p-6 border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition"
+                >
+                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-brand-700 transition">{item.title}</h3>
+                  <p className="mt-2 text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                  <span className="mt-3 inline-block text-sm text-brand-700 font-medium">了解更多 →</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
         <ServiceArea
           areas={areas}
           phone={settings.phone}

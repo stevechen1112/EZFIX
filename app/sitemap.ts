@@ -1,20 +1,22 @@
 import { prisma } from "@/lib/prisma";
+import { buildPublicUrl, resolveSiteBaseUrl } from "@/lib/site-url";
 import { MetadataRoute } from "next";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ezfix.com.tw";
+export const dynamic = "force-dynamic";
 
-  // 取得所有已發布文章
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = resolveSiteBaseUrl();
+
   const posts = await prisma.blogPost.findMany({
     where: { isPublished: true },
     select: { slug: true, updatedAt: true },
   });
 
   return [
-    { url: baseUrl, lastModified: new Date() },
-    { url: `${baseUrl}/blog`, lastModified: new Date() },
+    { url: buildPublicUrl(baseUrl, "/"), lastModified: new Date() },
+    { url: buildPublicUrl(baseUrl, "/blog"), lastModified: new Date() },
     ...posts.map((post) => ({
-      url: `${baseUrl}/blog/${post.slug}`,
+      url: buildPublicUrl(baseUrl, `/blog/${post.slug}`),
       lastModified: post.updatedAt,
     })),
   ];

@@ -13,9 +13,19 @@ const nextConfig = {
   },
   // 301 重定向（供 ContentFlow Content Refresh 使用）
   async redirects() {
-    // 可從資料庫讀取 redirects 動態配置
-    // 目前先回傳空陣列，未來可擴充
-    return [];
+    return [
+      // 舊快取頁面可能仍引用 /uploads/，永久轉到 /media/
+      {
+        source: "/uploads/:path*",
+        destination: "/media/:path*",
+        permanent: true,
+      },
+      {
+        source: "/favicon.ico",
+        destination: "/icon.png",
+        permanent: false,
+      },
+    ];
   },
 };
 

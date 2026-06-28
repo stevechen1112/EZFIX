@@ -2,6 +2,7 @@
 // 此檔案由網站業主（您）提供內容，已確認具有完整使用權
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { bindUploadImages } from "../lib/bind-images";
 
 const prisma = new PrismaClient();
 
@@ -40,7 +41,7 @@ async function main() {
       heroSubtitle: "紗窗維修訂製｜折疊式紗窗｜鋁門窗維修｜防霾網安裝",
       servicesTitle: "服務項目",
       areaTitle: "服務區域",
-      areaMapImage: "/uploads/og/og-default.jpg",
+      areaMapImage: "/media/og/og-default.jpg",
       areaCtaLabel: "來電諮詢",
       reviewsTitle: "客戶回饋",
       reviewsSubtitle: "看看客戶對我們最新真實回饋",
@@ -212,152 +213,12 @@ async function main() {
   }
   console.log(`✅ 服務區域 ${areas.length} 筆`);
 
-  // 7) 部落格範例文章（業主可編輯或刪除）
+  // 7) 部落格文章（預設無範例，由業主自行新增）
   await prisma.blogPost.deleteMany();
-  const samplePosts = [
-    {
-      title: "紗窗日常保養 5 個小技巧",
-      slug: "screen-window-care-tips",
-      excerpt: "做好日常清潔與保養，能讓紗窗用得更久、推拉更順暢。整理 5 個不花錢的實用方法。",
-      content: `很多人以為紗窗壞了只能整片換新，其實只要平日多用點心，就能大幅延長使用壽命。以下是 5 個最基本、但多數人容易忽略的保養方式。
+  console.log("✅ 部落格文章已清空");
 
-一、定期用吸塵器清理溝槽灰塵
-滑軌與窗框溝槽是最容易堆積灰塵的地方，累積後會讓紗窗推拉變卡。每 1-2 個月用吸塵器或乾刷順著溝槽清一次，順暢度會明顯改善。
-
-二、避免用水柱直沖紗網
-很多人清洗紗窗時會用高壓水槍直沖，雖然方便但容易讓紗網變形、脫落。建議用軟毛刷搭配中性清潔劑輕刷，再用清水沖洗即可。
-
-三、定期檢查窗輪與膠條
-紗窗推不順、卡住，多半是窗輪磨損或膠條硬化。發現問題可請師傅評估更換，不需要整片重做。
-
-四、避免重壓紗網
-紗網是塑膠或玻璃纖維材質，長期重壓會變形。請勿在紗窗上放置物品或讓小朋友攀爬。
-
-五、颱風或大雨前先檢查固定
-鋁窗或紗窗在風大時如果沒有確實固定，長期下來容易變形影響密合度。建議在颱風季節來臨前請師傅做一次全面檢查。
-
-做好以上幾點，一組品質好的紗窗用上 8-10 年都不是問題。如有維修需求，歡迎聯繫我們評估。`,
-      authorName: "恆惠修理紗窗",
-      category: "保養知識",
-      tags: "紗窗, 保養, 維修",
-      isPublished: true,
-      publishedAt: new Date(),
-    },
-    {
-      title: "如何判斷該維修還是該換新？",
-      slug: "repair-or-replace",
-      excerpt: "紗窗或鋁門窗出了問題，到底該修還是換？從 4 個方向幫您判斷。",
-      content: `很多客戶第一次聯繫我們時，最常問的就是「這個還能修嗎？還是要整個換新的？」其實多數情況下，局部維修就能解決問題，費用也只有整組更換的 1/3 到 1/2。
-
-以下 4 個方向可以幫助您快速判斷：
-
-一、看損壞的位置與範圍
-如果只是窗輪、膠條、滑軌等五金零件故障，幾乎都可以單獨更換。整片紗網破一個洞，補一片網也比整組換新便宜很多。
-
-二、看鋁框是否變形
-鋁框如果還維持方正、沒有明顯凹陷，維修就有意義。如果窗框已經嚴重變形、密合度喪失，通常就建議整組更新了。
-
-三、看使用年限
-正常使用下，鋁窗主體可以用 15-20 年以上。紗網的壽命通常 5-10 年。如果鋁框還很新，只是紗網或五金老舊，維修絕對比換新划算。
-
-四、看玻璃狀態
-玻璃有破裂、霧化、結露（兩層玻璃之間起霧）等問題，多數可以單片更換，不需要整個換窗。
-
-下次家裡的紗窗或鋁門窗出問題時，可以先拍照傳 LINE 給師傅看，師傅會依現場狀況給您最中肯的建議。`,
-      authorName: "恆惠修理紗窗",
-      category: "維修建議",
-      tags: "維修, 紗窗, 鋁門窗",
-      isPublished: true,
-      publishedAt: new Date(Date.now() - 86400000 * 3), // 3 天前
-    },
-  ];
-  for (const p of samplePosts) {
-    await prisma.blogPost.create({ data: p });
-  }
-  console.log(`✅ 部落格範例文章 ${samplePosts.length} 篇`);
-
-  // 7) 綁定圖片到對應記錄（解決 seed 刪除後圖片路徑消失的問題）
-  const fs = await import("fs/promises");
-  const path = await import("path");
-  const uploadsRoot = path.join(process.cwd(), "public", "uploads");
-
-  // 定義「服務 → 圖片檔名」對應
-  const serviceImageMap: Record<string, string> = {
-    "紗窗修理訂製": "services/service-1.jpeg",
-    "折疊式紗窗訂製": "services/service-2.jpg",
-    "鋁門窗維修": "services/service-3.jpeg",
-    "防霾網安裝": "services/service-4.jpg",
-  };
-  // 評論 → 頭像
-  const reviewImageMap: Record<string, string> = {
-    "Steve C***": "avatars/avatar-1.png",
-    "Lily H*": "avatars/avatar-2.png",
-    "ula C****": "avatars/avatar-3.png",
-  };
-  // 評論（陳** 有兩則，第二則用 avatar-4）
-  const chenAvatarAssigned = new Set<string>();
-
-  let imgBound = 0;
-
-  // Hero：用既有的 3 張圖（依資料表順序綁定）
-  const heroImgs = ["hero/hero-1.jpg", "hero/hero-2.jpg", "hero/hero-3.jpeg"];
-  const heroRecords = await prisma.heroSlide.findMany({ orderBy: { order: "asc" } });
-  for (let i = 0; i < heroRecords.length; i++) {
-    const relPath = heroImgs[i];
-    if (!relPath) continue;
-    const absPath = path.join(uploadsRoot, relPath);
-    if (await fs.access(absPath).then(() => true).catch(() => false)) {
-      await prisma.heroSlide.update({
-        where: { id: heroRecords[i].id },
-        data: { image: `/uploads/${relPath.replace(/\\/g, "/")}` },
-      });
-      imgBound++;
-    }
-  }
-
-  // 服務
-  const serviceRecords = await prisma.service.findMany({ orderBy: { order: "asc" } });
-  for (const s of serviceRecords) {
-    const relPath = serviceImageMap[s.title];
-    if (!relPath) continue;
-    const absPath = path.join(uploadsRoot, relPath);
-    if (await fs.access(absPath).then(() => true).catch(() => false)) {
-      await prisma.service.update({
-        where: { id: s.id },
-        data: { image: `/uploads/${relPath}` },
-      });
-      imgBound++;
-    }
-  }
-
-  // 評論
-  const reviewRecords = await prisma.review.findMany({ orderBy: { order: "asc" } });
-  for (const r of reviewRecords) {
-    let relPath = reviewImageMap[r.name];
-    if (!relPath && r.name === "陳**") {
-      relPath = "avatars/avatar-4.png";
-    }
-    if (!relPath) continue;
-    const absPath = path.join(uploadsRoot, relPath);
-    if (await fs.access(absPath).then(() => true).catch(() => false)) {
-      await prisma.review.update({
-        where: { id: r.id },
-        data: { avatar: `/uploads/${relPath}` },
-      });
-      imgBound++;
-    }
-  }
-
-  // SiteSettings 綁定地圖與 OG 圖
-  const mapPath = path.join(uploadsRoot, "og", "og-default.jpg");
-  if (await fs.access(mapPath).then(() => true).catch(() => false)) {
-    await prisma.siteSettings.update({
-      where: { id: 1 },
-      data: { areaMapImage: "/uploads/og/og-default.jpg" },
-    });
-    imgBound++;
-  }
-
+  // 8) 綁定圖片到對應記錄（僅在檔案存在時更新路徑）
+  const imgBound = await bindUploadImages(prisma);
   console.log(`✅ 圖片綁定 ${imgBound} 個`);
 
   console.log("\n🎉 種子資料建立完成！");

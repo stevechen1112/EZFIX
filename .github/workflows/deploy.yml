@@ -24,5 +24,6 @@ jobs:
           key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
             cd /var/www/henghui
-            bash deploy.sh
+            git pull origin main
+            bash deploy/deploy.sh
             pm2 status
