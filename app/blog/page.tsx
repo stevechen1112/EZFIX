@@ -1,12 +1,47 @@
 import { prisma } from "@/lib/prisma";
+import { resolveSiteBaseUrl } from "@/lib/site-url";
 import Link from "next/link";
+import type { Metadata } from "next";
 import type { BlogPostItem } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "專業分享 - 紗窗維修知識懶人包 | 恆惠修理紗窗",
-  description: "分享紗窗、鋁門窗、防霾網的保養與維修知識，由恆惠修理紗窗的師傅親自撰寫。",
+const blogTitle = "專業分享 - 紗窗維修知識懶人包 | 恆惠修理紗窗";
+const blogDescription =
+  "分享紗窗、鋁門窗、防霾網的保養與維修知識，由恆惠修理紗窗的師傅親自撰寫。";
+
+export const metadata: Metadata = {
+  title: blogTitle,
+  description: blogDescription,
+  alternates: {
+    canonical: `${resolveSiteBaseUrl()}/blog`,
+  },
+  openGraph: {
+    type: "website",
+    locale: "zh_TW",
+    url: `${resolveSiteBaseUrl()}/blog`,
+    siteName: "恆惠修理紗窗",
+    title: blogTitle,
+    description: blogDescription,
+    images: [
+      {
+        url: "/media/og/og-default.jpg",
+        width: 1200,
+        height: 630,
+        alt: "恆惠修理紗窗 專業分享",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: blogTitle,
+    description: blogDescription,
+    images: ["/media/og/og-default.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function BlogIndexPage() {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveSiteBaseUrl } from "@/lib/site-url";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +12,12 @@ function buildArticleSchema(post: {
   excerpt: string;
   authorName: string;
   publishedAt: Date | null;
+  updatedAt: Date;
   coverImage: string;
   slug: string;
 }) {
   const baseUrl = resolveSiteBaseUrl();
+  const articleUrl = `${baseUrl}/blog/${encodeURIComponent(post.slug)}`;
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Article",
@@ -33,12 +36,57 @@ function buildArticleSchema(post: {
       },
     },
     datePublished: post.publishedAt?.toISOString() || new Date().toISOString(),
-    dateModified: post.publishedAt?.toISOString() || new Date().toISOString(),
+    dateModified: post.updatedAt?.toISOString() || post.publishedAt?.toISOString() || new Date().toISOString(),
     image: post.coverImage ? post.coverImage : `${baseUrl}/icon.png`,
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `${baseUrl}/blog/${encodeURIComponent(post.slug)}`,
+      "@id": articleUrl,
     },
+    url: articleUrl,
+  });
+}
+
+function buildBreadcrumbSchema(post: { slug: string; title: string; category: string }) {
+  const baseUrl = resolveSiteBaseUrl();
+  const items = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "首頁",
+      item: baseUrl,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "專業分享",
+      item: `${baseUrl}/blog`,
+    },
+  ];
+  if (post.category) {
+    items.push({
+      "@type": "ListItem",
+      position: 3,
+      name: post.category,
+      item: `${baseUrl}/blog?category=${encodeURIComponent(post.category)}`,
+    });
+    items.push({
+      "@type": "ListItem",
+      position: 4,
+      name: post.title,
+      item: `${baseUrl}/blog/${encodeURIComponent(post.slug)}`,
+    });
+  } else {
+    items.push({
+      "@type": "ListItem",
+      position: 3,
+      name: post.title,
+      item: `${baseUrl}/blog/${encodeURIComponent(post.slug)}`,
+    });
+  }
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items,
   });
 }
 
@@ -56,13 +104,56 @@ function resolveSlug(raw: string): string {
   }
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
   const slug = resolveSlug(params.slug);
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post) return { title: "找不到文章" };
+
+  const baseUrl = resolveSiteBaseUrl();
+  const articleUrl = `${baseUrl}/blog/${encodeURIComponent(post.slug)}`;
+  const title = post.metaTitle || `${post.title} | 恆惠修理紗窗`;
+  const description = post.metaDescription || post.excerpt || post.title;
+  const ogImage = post.coverImage || "/media/og/og-default.jpg";
+
   return {
-    title: post.metaTitle || `${post.title} | 恆惠修理紗窗`,
-    description: post.metaDescription || post.excerpt || post.title,
+    title,
+    description,
+    alternates: {
+      canonical: articleUrl,
+    },
+    openGraph: {
+      type: "article",
+      locale: "zh_TW",
+      url: articleUrl,
+      siteName: "恆惠修理紗窗",
+      title,
+      description,
+      publishedTime: post.publishedAt?.toISOString() || undefined,
+      modifiedTime: post.updatedAt?.toISOString() || undefined,
+      authors: [post.authorName || "恆惠修理紗窗"],
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 
@@ -93,11 +184,34 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   return (
     <main id="content" className="min-h-screen bg-white">
-      {/* JSON-LD Schema */}
+      {/* JSON-LD Schema: Article */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: post.jsonLd || buildArticleSchema(post) }}
       />
+      {/* JSON-LD Schema: BreadcrumbList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: buildBreadcrumbSchema(post) }}
+      />
+      {/* 麵包屑導覽（視覺） */}
+      <nav className="mx-auto max-w-3xl px-4 pt-6 text-sm text-gray-500" aria-label="麵包屑">
+        <ol className="flex flex-wrap items-center gap-1">
+          <li>
+            <Link href="/" className="hover:text-brand-700">首頁</Link>
+          </li>
+          <li aria-hidden>›</li>
+          <li>
+            <Link href="/blog" className="hover:text-brand-700">專業分享</Link>
+          </li>
+          {post.category && (
+            <>
+              <li aria-hidden>›</li>
+              <li className="text-gray-400">{post.category}</li>
+            </>
+          )}
+        </ol>
+      </nav>
       {/* Hero 封面 */}
       <section className="bg-gradient-to-br from-brand-700 to-brand-900 text-white">
         {post.coverImage && (
