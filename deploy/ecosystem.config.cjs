@@ -14,6 +14,7 @@ module.exports = {
         NODE_ENV: "production",
         PORT: 3000,
         NEXT_PUBLIC_SITE_URL: "https://ezfix.com.tw",
+        CONTENTFLOW_SECRET: "cf-henghui-2026-change-me",
       },
       error_file: "/var/log/henghui/error.log",
       out_file: "/var/log/henghui/out.log",
